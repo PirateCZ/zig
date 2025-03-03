@@ -1,0 +1,96 @@
+const std = @import("std");
+const print = std.debug.print;
+const fs = std.fs;
+var stayOpen: bool = true;
+var taskmngr: taskManager = undefined;
+
+pub fn main() !void {
+    var allocator: std.mem.Allocator = std.heap.page_allocator;
+    taskmngr = taskManager.init(&allocator);
+    print("--\nSelect action: \n1. List Tasks \n2. Add Task \n3. Remove Task \n\n9. Save \n0. Exit \n--\n", .{});
+    while (stayOpen) {
+        try selectAction();
+    }
+}
+
+const Task = struct {
+    name: []const u8,
+    isCompleted: bool = false,
+};
+
+const taskManager = struct {
+    taskList: std.ArrayList(Task),
+
+    fn init(allocator: *std.mem.Allocator) taskManager {
+        return taskManager{ .taskList = std.ArrayList(Task).init(allocator.*) };
+    }
+
+    fn listTasks(self: *taskManager) !void {
+        for (self.taskList.items, 0..self.taskList.items.len) |task, i| {
+            print("{d}. {s}\n", .{ i + 1, task.name });
+        }
+    }
+
+    fn addTask(self: *taskManager, allocator: *std.mem.Allocator, text: []const u8) !void {
+        const copy = try allocator.*.dupe(u8, text);
+        std.debug.print("\"{s}\"", .{copy});
+        try self.taskList.append(Task{ .name = copy });
+    }
+
+    fn removeTask(self: *taskManager) !void {
+        const input = try readLine();
+        std.debug.print("{d}", .{input});
+        for (input) |char| {
+            std.debug.print("Invalid Char: {c}, '{d}'", .{ char, char });
+        }
+        //const index = try std.fmt.parseInt(usize, input, 10);
+        //if (index > self.taskList.items.len) {
+        //std.debug.print("Invalid number.", .{});
+        //return;
+        //}
+        //_ = taskmngr.taskList.orderedRemove(index);
+        std.debug.print("Imp: {d}, {any}", .{ input, self });
+    }
+
+    fn saveToFile(self: *taskManager) void {
+        std.debug.print("Saving...{d}", .{self.taskList.items.len});
+    }
+};
+
+fn selectAction() !void {
+    var allocator = std.heap.page_allocator;
+    const input: []const u8 = try readLine();
+
+    if (input.len == 0) {
+        std.debug.print("Invalid: Length cannot be zero\n", .{});
+        return;
+    }
+
+    if (input[0] == '1') {
+        print("The list of tasks: \n", .{});
+        try taskmngr.listTasks();
+        std.debug.print("\n", .{});
+    } else if (input[0] == '2') {
+        print("Add a task: \n", .{});
+        try taskmngr.addTask(&allocator, try readLine());
+        std.debug.print("\n", .{});
+    } else if (input[0] == '3') {
+        std.debug.print("Remove task: \n", .{});
+        try taskmngr.listTasks();
+        try taskmngr.removeTask();
+    } else if (input[0] == '9') {
+        taskmngr.saveToFile();
+        std.debug.print("Saved.", .{});
+    } else if (input[0] == '0') {
+        std.debug.print("Exiting...", .{});
+        stayOpen = false;
+    } else {
+        print("error\n", .{});
+    }
+}
+
+fn readLine() ![]const u8 {
+    var buff: [64]u8 = undefined;
+    const bytes_read = try std.io.getStdIn().reader().read(&buff);
+    return std.mem.trim(u8, buff[0..bytes_read], &std.ascii.whitespace);
+}
