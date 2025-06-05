@@ -1,1 +1,5 @@
 /Ziglings
+/gui/1.project
+/gui/2.project
+/gui/3.project/.zig-cache
+/gui/3.project/zig-out/lib
